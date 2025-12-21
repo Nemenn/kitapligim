@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulut Kitap Arşivi</title>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --text: #f1f5f9;
+            --accent: #10b981; --edit: #3b82f6; --delete: #ef4444;
+            --input: #334155; --switch-bg: #475569;
+            --okunmus-renk: #fbbf24;
+            --ultra-slow: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            --smooth-ease: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .konteynir { width: 100%; max-width: 700px; }
+
+        h1 { text-align: center; margin-bottom: 30px; font-size: 1.8rem; font-weight: 900; }
+        .baslik-metni { background: linear-gradient(to right, #10b981, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* ÜST PANEL */
+        .istatistik-bari { display: flex; gap: 10px; margin-bottom: 20px; }
+        .istatistik-kart {
+            flex: 1; background: var(--card); padding: 12px; border-radius: 15px;
+            text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.3s;
+        }
+        .istatistik-kart:hover { transform: translateY(-3px); background: rgba(255,255,255,0.06); }
+        .istatistik-sayi { display: block; font-size: 1.1rem; font-weight: 900; color: var(--accent); }
+        .istatistik-etiket { font-size: 0.65rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* GİRİŞ PANELİ */
+        .giris-paneli { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 12px; }
+        .satir { display: flex; gap: 10px; width: 100%; }
+        input, textarea { background: var(--input); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 10px; color: white; outline: none; width: 100%; font-family: inherit; }
+        button#anaButon { background: var(--accent); color: #0f172a; border: none; padding: 0 25px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+
+        /* LİSTE VE KLASÖR DÜZENLEME */
+        .seri-grubu { background: rgba(255, 255, 255, 0.03); border-radius: 15px; margin-bottom: 10px; border-left: 4px solid var(--accent); overflow: hidden; }
+        .seri-baslik { padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
+        .seri-baslik::after { content: '▼'; font-size: 0.7rem; transition: transform 0.4s; opacity: 0.5; }
+        .seri-grubu.acik .seri-baslik::after { transform: rotate(180deg); }
+
+        .seri-icerik { height: 0; overflow: hidden; opacity: 0; transition: height 0.4s var(--smooth-ease), opacity 0.3s; padding: 0 12px; }
+        .seri-grubu.acik .seri-icerik { padding-bottom: 10px; opacity: 1; }
+
+        .kitap-satir { background: var(--card); padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 6px; }
+        .kitap-satir:last-child { margin-bottom: 0; }
+        
+        .kitap-ust { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .kitap-bilgi { flex: 1; min-width: 0; }
+        .kitap-adi { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .kitap-fiyat-etiket { font-size: 0.65rem; opacity: 0.6; }
+
+        .islem-grubu { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+        /* SWITCH */
+        .switch-konteynir { width: 40px; height: 22px; background: var(--switch-bg); border-radius: 50px; position: relative; cursor: pointer; transition: 0.3s; }
+        .switch-daire { width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: 0.3s; }
+        .switch-konteynir.aktif { background: var(--accent); }
+        .switch-konteynir.aktif .switch-daire { left: calc(100% - 19px); }
+
+        .okunmus .kitap-adi { opacity: 0.4; text-decoration: line-through; color: var(--okunmus-renk); }
+        .btn-icon { opacity: 0.4; cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
+        .btn-icon:hover { opacity: 1; transform: scale(1.1); }
+
+        .not-onizleme { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06); color: #94a3b8; font-size: 0.75rem; word-break: break-all; }
+        .kitap-satir.aktif .not-onizleme { display: block; }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-icerik { background: var(--card); padding: 25px; border-radius: 20px; width: 90%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; }
+        .analiz-satir { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="konteynir">
+    <div class="istatistik-bari">
+        <div class="istatistik-kart"><span class="istatistik-sayi" id="toplamKitap">0</span><span class="istatistik-etiket">Kitap</span></div>
+        <div class="istatistik-kart"><span class="istatistik-sayi" id="okunanKitap" style="color:#fbbf24">0</span><span class="istatistik-etiket">Okunan</span></div>
+        <div class="istatistik-kart" onclick="analizAc()"><span class="istatistik-sayi" id="toplamPara" style="color:#3b82f6">0₺</span><span class="istatistik-etiket">Harcama 📊</span></div>
+    </div>
+
+    <h1>📚 <span class="baslik-metni">KİTAP ARŞİVİM</span></h1>
+    
+    <div class="giris-paneli">
+        <div class="satir">
+            <input type="text" id="kitapAdi" placeholder="Kitap/Cilt Adı">
+            <input type="text" id="seriAdi" placeholder="Seri Adı">
+        </div>
+        <div class="satir">
+            <input type="number" step="0.01" id="kitapFiyati" placeholder="Fiyat (₺)">
+            <button onclick="kitapEkle()" id="anaButon">Ekle</button>
+        </div>
+        <textarea id="kitapNotu" placeholder="Notlar..."></textarea>
+    </div>
+    <div id="listeAlani"></div>
+</div>
+
+<div id="duzenleModal" class="modal">
+    <div class="modal-icerik">
+        <h3 style="margin:0; color:var(--accent)">Düzenle</h3>
+        <input type="text" id="duzenleAd">
+        <input type="number" step="0.01" id="duzenleFiyat">
+        <textarea id="duzenleNot"></textarea>
+        <div style="display:flex; gap:10px;">
+            <button onclick="kaydetDuzenleme()" style="background:var(--accent); border:none; padding:12px; border-radius:10px; flex:1; cursor:pointer; font-weight:bold">Kaydet</button>
+            <button onclick="modalKapat()" style="background:#475569; border:none; color:white; padding:12px; border-radius:10px; flex:0.5; cursor:pointer">İptal</button>
+        </div>
+    </div>
+</div>
+
+<div id="analizModal" class="modal" onclick="this.style.display='none'">
+    <div class="modal-icerik" onclick="event.stopPropagation()">
+        <h3 style="margin:0 0 10px 0; color:var(--accent); text-align:center;">📊 Finansal Analiz</h3>
+        <div class="analiz-satir"><span>Kitap Başı Ort:</span> <span id="analizOrt">0₺</span></div>
+        <div class="analiz-satir"><span>En Pahalı:</span> <span id="analizEnPahali">-</span></div>
+        <div class="analiz-satir"><span>En Ucuz:</span> <span id="analizEnUcuz">-</span></div>
+        <button onclick="document.getElementById('analizModal').style.display='none'" style="width:100%; margin-top:10px; padding:12px; border-radius:10px; background:var(--input); color:white; border:none; cursor:pointer">Kapat</button>
+    </div>
+</div>
+
+<script>
+    // FIREBASE YAPILANDIRMASI (Verdiğin bilgilerle güncellendi)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBsnqNr1GPKRZ8ktqbLq3eMqHu0Yq_gLyY",
+        authDomain: "dijitalkitap-87eb7.firebaseapp.com",
+        databaseURL: "https://dijitalkitap-87eb7-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "dijitalkitap-87eb7",
+        storageBucket: "dijitalkitap-87eb7.firebasestorage.app",
+        messagingSenderId: "926927401994",
+        appId: "1:926927401994:web:58c88eec45965cc87fdbf3"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    
+    let kitaplar = [];
+    let duzenlenecekId = null;
+
+    // BULUTTAN VERİYİ DİNLE (Senkronizasyon Başlangıcı)
+    db.ref('arsiv_data').on('value', (snapshot) => {
+        kitaplar = snapshot.val() || [];
+        listele();
+        istatistikGuncelle();
+    });
+
+    function veriyiKaydet() {
+        // LocalStorage yerine Firebase Buluta yazıyoruz
+        db.ref('arsiv_data').set(kitaplar);
+    }
+
+    function kitapEkle() {
+        const isimI = document.getElementById('kitapAdi'), seriI = document.getElementById('seriAdi');
+        const fiyatI = document.getElementById('kitapFiyati'), notI = document.getElementById('kitapNotu');
+        let isim = isimI.value.trim();
+        const seri = seriI.value.trim(), fiyat = parseFloat(fiyatI.value) || 0, not = notI.value;
+        if (!isim) return alert("İsim giriniz.");
+        if (seri && !isim.toLowerCase().includes(seri.toLowerCase())) isim = seri + " - " + isim;
+        
+        kitaplar.push({ id: Date.now(), isim, seri, fiyat, not, okundu: false });
+        veriyiKaydet();
+        isimI.value = ''; fiyatI.value = ''; notI.value = '';
+    }
+
+    function seriSec(seriIsmi) {
+        document.getElementById('seriAdi').value = seriIsmi;
+        document.getElementById('kitapAdi').focus();
+    }
+
+    function refreshFolderHeight(el) {
+        const content = el.closest('.seri-icerik');
+        if (content) {
+            setTimeout(() => {
+                content.style.height = "auto";
+                const h = content.scrollHeight + 10;
+                content.style.height = h + "px";
+            }, 10);
+        }
+    }
+
+    function klasorToggle(baslikEl, seriIsmi) {
+        const grup = baslikEl.parentElement, icerik = grup.querySelector('.seri-icerik');
+        seriSec(seriIsmi);
+        if (grup.classList.contains('acik')) {
+            icerik.style.height = icerik.scrollHeight + "px";
+            setTimeout(() => { icerik.style.height = "0"; icerik.style.opacity = "0"; grup.classList.remove('acik'); }, 10);
+        } else {
+            grup.classList.add('acik'); icerik.style.height = "auto";
+            const h = icerik.scrollHeight + 10; icerik.style.height = "0"; 
+            setTimeout(() => { icerik.style.opacity = "1"; icerik.style.height = h + "px"; }, 10);
+        }
+    }
+
+    function istatistikGuncelle() {
+        const tHarcama = kitaplar.reduce((top, k) => top + (parseFloat(k.fiyat) || 0), 0);
+        document.getElementById('toplamKitap').innerText = kitaplar.length;
+        document.getElementById('okunanKitap').innerText = kitaplar.filter(k => k.okundu).length;
+        document.getElementById('toplamPara').innerText = tHarcama.toFixed(2) + "₺";
+    }
+
+    function analizAc() {
+        if (kitaplar.length === 0) return;
+        const f = kitaplar.map(k => parseFloat(k.fiyat) || 0).filter(x => x > 0);
+        const toplam = kitaplar.reduce((t, k) => t + (parseFloat(k.fiyat) || 0), 0);
+        const ort = toplam / kitaplar.length;
+        const max = kitaplar.reduce((a, b) => (parseFloat(a.fiyat)||0) > (parseFloat(b.fiyat)||0) ? a : b, kitaplar[0]);
+        const min = f.length ? Math.min(...f) : 0;
+        document.getElementById('analizOrt').innerText = ort.toFixed(2) + "₺";
+        document.getElementById('analizEnPahali').innerText = (parseFloat(max.fiyat)||0).toFixed(2) + "₺";
+        document.getElementById('analizEnUcuz').innerText = min.toFixed(2) + "₺";
+        document.getElementById('analizModal').style.display = 'flex';
+    }
+
+    function kitapSablonu(k) {
+        return `
+            <div class="kitap-satir ${k.okundu ? 'okunmus' : ''}" onclick="this.classList.toggle('aktif'); refreshFolderHeight(this)">
+                <div class="kitap-ust">
+                    <div class="kitap-bilgi">
+                        <div class="kitap-adi">${k.isim}</div>
+                        <div class="kitap-fiyat-etiket">${(parseFloat(k.fiyat)||0).toFixed(2)} ₺</div>
+                    </div>
+                    <div class="islem-grubu">
+                        <div class="switch-konteynir ${k.okundu ? 'aktif' : ''}" onclick="event.stopPropagation(); durumDegistir(${k.id})">
+                            <div class="switch-daire"></div>
+                        </div>
+                        <span class="btn-icon" onclick="event.stopPropagation(); duzenleAc(${k.id})">✏️</span>
+                        <span class="btn-icon" onclick="event.stopPropagation(); sil(${k.id})">🗑️</span>
+                    </div>
+                </div>
+                <div class="not-onizleme"><strong>Not:</strong> ${k.not || '-'}</div>
+            </div>`;
+    }
+
+    function listele() {
+        const liste = document.getElementById('listeAlani');
+        const aciklar = Array.from(document.querySelectorAll('.seri-grubu.acik')).map(el => el.getAttribute('data-seri'));
+        liste.innerHTML = '';
+        const gruplar = {}; const tekiller = [];
+        kitaplar.forEach(k => { if(k.seri) (gruplar[k.seri] = gruplar[k.seri] || []).push(k); else tekiller.push(k); });
+        for (let s in gruplar) {
+            const div = document.createElement('div');
+            div.className = `seri-grubu ${aciklar.includes(s) ? 'acik' : ''}`;
+            div.setAttribute('data-seri', s);
+            div.innerHTML = `<div class="seri-baslik" onclick="klasorToggle(this, '${s}')"><span>📁 ${s}</span></div>
+                             <div class="seri-icerik">${gruplar[s].map(k => kitapSablonu(k)).join('')}</div>`;
+            liste.appendChild(div);
+            if(aciklar.includes(s)) { const ic = div.querySelector('.seri-icerik'); ic.style.height = "auto"; ic.style.opacity = "1"; }
+        }
+        tekiller.forEach(k => {
+            const d = document.createElement('div'); d.innerHTML = kitapSablonu(k);
+            liste.appendChild(d.firstElementChild);
+        });
+    }
+
+    function duzenleAc(id) {
+        const k = kitaplar.find(x => x.id === id);
+        duzenlenecekId = id;
+        document.getElementById('duzenleAd').value = k.isim;
+        document.getElementById('duzenleFiyat').value = k.fiyat;
+        document.getElementById('duzenleNot').value = k.not;
+        document.getElementById('duzenleModal').style.display = 'flex';
+    }
+
+    function kaydetDuzenleme() {
+        kitaplar = kitaplar.map(k => k.id === duzenlenecekId ? {...k, isim:document.getElementById('duzenleAd').value, fiyat:parseFloat(document.getElementById('duzenleFiyat').value)||0, not:document.getElementById('duzenleNot').value} : k);
+        modalKapat(); veriyiKaydet();
+    }
+    function modalKapat() { document.getElementById('duzenleModal').style.display = 'none'; }
+    function durumDegistir(id) { kitaplar = kitaplar.map(k => k.id === id ? {...k, okundu: !k.okundu} : k); veriyiKaydet(); }
+    function sil(id) { if(confirm("Silinsin mi?")) { kitaplar = kitaplar.filter(k => k.id !== id); veriyiKaydet(); } }
+</script>
+</body>
+</html>
