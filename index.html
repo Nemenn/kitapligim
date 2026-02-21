@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Koleksiyon Arşivi</title>
-    
     <link rel="icon" href="https://fav.farm/📚">
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
@@ -55,7 +54,7 @@
         .seri-icerik { height: 0; overflow: hidden; opacity: 0; transition: height 0.4s var(--smooth-ease), opacity 0.3s; padding: 0 12px; }
         .seri-grubu.acik .seri-icerik { padding-bottom: 10px; opacity: 1; height: auto; }
 
-        .kitap-satir { background: var(--card); padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 6px; }
+        .kitap-satir { background: var(--card); padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; }
         .kitap-ust { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .kitap-adi { font-weight: 600; font-size: 0.9rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .okunmus .kitap-adi { opacity: 0.4; text-decoration: line-through; color: var(--okunmus-renk); }
@@ -63,7 +62,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
         .modal-icerik { background: var(--card); padding: 25px; border-radius: 20px; width: 90%; max-width: 450px; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(255,255,255,0.05); }
         
-        .analiz-satir { display: flex; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 10px; font-size: 0.85rem; }
+        .analiz-satir { display: flex; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 10px; font-size: 0.85rem; align-items: center; }
         .analiz-baslik { font-size: 0.7rem; text-transform: uppercase; color: var(--accent); margin-top: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; letter-spacing: 1px; }
 
         .modal-btn { background: var(--accent) !important; color: #0f172a !important; border: none; padding: 14px; border-radius: 12px; font-weight: 900; cursor: pointer; text-transform: uppercase; }
@@ -79,6 +78,8 @@
         #contextMenu { display: none; position: fixed; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 9999; min-width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 5px; }
         .context-item { padding: 12px 15px; cursor: pointer; font-size: 0.85rem; border-radius: 8px; }
         .context-item:hover { background: rgba(255,255,255,0.08); }
+
+        .guncel-input { width: 80px !important; padding: 5px !important; text-align: center; border-color: var(--accent) !important; font-weight: bold; }
     </style>
 </head>
 <body onclick="ekranTikla(event)">
@@ -109,7 +110,7 @@
     <div class="giris-paneli">
         <div class="satir">
             <input type="text" id="anaIsim" placeholder="Kitap/Cilt Adı">
-            <input type="text" id="seriAdi" placeholder="Seri Adı (Klasör)">
+            <input type="text" id="seriAdi" placeholder="Seri Adı (Klasörlemek için)">
         </div>
         <div class="satir">
             <input type="number" step="0.01" id="fiyat" placeholder="Fiyat (₺)">
@@ -166,13 +167,13 @@
 
     function ogeEkle() {
         const isim = document.getElementById('anaIsim').value.trim();
-        const seri = document.getElementById('seriAdi').value.trim() || "Diğer";
+        const seri = document.getElementById('seriAdi').value.trim();
         const fiyat = parseFloat(document.getElementById('fiyat').value) || 0;
         const not = document.getElementById('not').value;
         if(!isim) return alert("İsim giriniz!");
         ogeler.push({ id: Date.now(), isim, seri, fiyat, not, tur: aktifMod, okundu: false });
         veriyiKaydet();
-        document.getElementById('anaIsim').value = ""; document.getElementById('fiyat').value = ""; document.getElementById('not').value = "";
+        document.getElementById('anaIsim').value = ""; document.getElementById('seriAdi').value = ""; document.getElementById('fiyat').value = ""; document.getElementById('not').value = "";
     }
 
     function listele() {
@@ -180,112 +181,111 @@
         const aciklar = Array.from(document.querySelectorAll('.seri-grubu.acik')).map(el => el.getAttribute('data-seri-key'));
         liste.innerHTML = "";
         const gruplar = {};
+        const bagimsizOgeler = [];
         ogeler.forEach(o => {
             const tur = o.tur || 'kitap';
-            const anahtar = o.seri + "_" + tur;
-            if(!gruplar[anahtar]) gruplar[anahtar] = [];
-            gruplar[anahtar].push(o);
+            if (tur !== aktifMod) return;
+            if (o.seri && o.seri !== "") {
+                const anahtar = o.seri + "_" + tur;
+                if(!gruplar[anahtar]) gruplar[anahtar] = [];
+                gruplar[anahtar].push(o);
+            } else { bagimsizOgeler.push(o); }
         });
         for (let g in gruplar) {
             const tur = gruplar[g][0].tur || 'kitap';
-            if (tur !== aktifMod) continue;
             const seriAdi = gruplar[g][0].seri;
             const okunan = gruplar[g].filter(x => x.okundu).length;
             const div = document.createElement('div');
             div.className = `seri-grubu gorunur ${tur === 'figur' ? 'figur-grubu' : ''} ${aciklar.includes(g) ? 'acik' : ''}`;
             div.setAttribute('data-seri-key', g);
             div.oncontextmenu = (e) => menuAc(e, g);
-            div.innerHTML = `
-                <div class="seri-baslik" onclick="this.parentElement.classList.toggle('acik')">
-                    <span>${tur === 'kitap' ? '📁' : '📦'} ${seriAdi}</span>
-                    <div class="seri-sag-taraf">
-                        <span class="seri-sayac">${okunan} / ${gruplar[g].length}</span>
-                        <span class="seri-ok">▼</span>
-                    </div>
-                </div>
-                <div class="seri-icerik">${gruplar[g].map(o => ogeSablonu(o)).join('')}</div>`;
+            div.innerHTML = `<div class="seri-baslik" onclick="this.parentElement.classList.toggle('acik')"><span>${tur === 'kitap' ? '📁' : '📦'} ${seriAdi}</span><div class="seri-sag-taraf"><span class="seri-sayac">${okunan} / ${gruplar[g].length}</span><span class="seri-ok">▼</span></div></div><div class="seri-icerik">${gruplar[g].map(o => ogeSablonu(o)).join('')}</div>`;
             liste.appendChild(div);
+        }
+        if (bagimsizOgeler.length > 0) {
+            const baslik = document.createElement('div');
+            baslik.style.cssText = "font-size: 0.7rem; opacity: 0.5; margin: 15px 0 10px 5px; text-transform: uppercase; letter-spacing: 1px;";
+            baslik.innerText = "Tekil Parçalar";
+            liste.appendChild(baslik);
+            bagimsizOgeler.forEach(o => {
+                const div = document.createElement('div');
+                div.innerHTML = ogeSablonu(o);
+                liste.appendChild(div.firstChild);
+            });
         }
     }
 
     function ogeSablonu(o) {
-        return `
-            <div class="kitap-satir ${o.okundu ? 'okunmus' : ''}" data-id="${o.id}">
-                <div class="kitap-ust">
-                    <div class="kitap-adi" onclick="duzenlePanelAc(${o.id})">${o.isim}</div>
-                    <div class="islem-grubu">
-                        <span style="font-size:0.7rem; opacity:0.6">${(o.fiyat || 0).toFixed(2)}₺</span>
-                        <div class="switch-konteynir ${o.okundu ? 'aktif' : ''} ${o.tur === 'figur' ? 'f-aktif' : ''}" onclick="durumDegistir(${o.id})">
-                            <div class="switch-daire"></div>
-                        </div>
-                        <span onclick="sil(${o.id})">🗑️</span>
-                    </div>
-                </div>
-            </div>`;
-    }
-
-    function menuAc(e, k) { 
-        e.preventDefault(); 
-        seciliSeriKey = k; 
-        const m = document.getElementById('contextMenu');
-        m.style.display = 'block'; 
-        let x = e.clientX, y = e.clientY;
-        if (x + 180 > window.innerWidth) x -= 180;
-        if (y + 100 > window.innerHeight) y -= 100;
-        m.style.left = x + 'px'; m.style.top = y + 'px';
-        e.stopPropagation(); 
+        return `<div class="kitap-satir ${o.okundu ? 'okunmus' : ''}" data-id="${o.id}"><div class="kitap-ust"><div class="kitap-adi" onclick="duzenlePanelAc(${o.id})">${o.isim}</div><div class="islem-grubu"><span style="font-size:0.7rem; opacity:0.6">${(o.fiyat || 0).toFixed(2)}₺</span><div class="switch-konteynir ${o.okundu ? 'aktif' : ''} ${o.tur === 'figur' ? 'f-aktif' : ''}" onclick="durumDegistir(${o.id})"><div class="switch-daire"></div></div><span onclick="sil(${o.id})">🗑️</span></div></div></div>`;
     }
 
     function analizPanelAc() {
         const kList = ogeler.filter(o => (o.tur || 'kitap') === 'kitap');
         const fList = ogeler.filter(o => o.tur === 'figur');
-        
         const kH = kList.reduce((a, b) => a + (b.fiyat || 0), 0);
         const fH = fList.reduce((a, b) => a + (b.fiyat || 0), 0);
         
         const enPahaliK = kList.length ? kList.reduce((a, b) => a.fiyat > b.fiyat ? a : b) : null;
         const enPahaliF = fList.length ? fList.reduce((a, b) => a.fiyat > b.fiyat ? a : b) : null;
-        
-        // EN UCUZLAR (Fiyatı 0'dan büyük olanlar arasından)
         const kListFiyatli = kList.filter(o => o.fiyat > 0);
         const fListFiyatli = fList.filter(o => o.fiyat > 0);
         const enUcuzK = kListFiyatli.length ? kListFiyatli.reduce((a, b) => a.fiyat < b.fiyat ? a : b) : null;
         const enUcuzF = fListFiyatli.length ? fListFiyatli.reduce((a, b) => a.fiyat < b.fiyat ? a : b) : null;
 
+        const kaydedilmisGuncel = localStorage.getItem('guncel_taban_fiyat') || 0;
+
         modalAc(`
             <h2 style="margin:0; color:var(--accent); text-align:center;">📊 Finansal Analiz</h2>
-            <div class="analiz-baslik">Genel Harcama</div>
-            <div class="analiz-satir"><span>📚 Kitaplar:</span> <b>${kH.toFixed(2)}₺</b></div>
-            <div class="analiz-satir"><span>🧸 Figürler:</span> <b>${fH.toFixed(2)}₺</b></div>
-            <div class="analiz-satir" style="border:1px solid var(--edit)"><span>💎 Toplam:</span> <b style="color:var(--edit)">${(kH+fH).toFixed(2)}₺</b></div>
             
-            <div class="analiz-baslik">En Pahalı Parçalar</div>
-            <div class="analiz-satir"><span>📚 Kitap:</span> <span>${enPahaliK ? enPahaliK.isim : '-'} (${enPahaliK ? enPahaliK.fiyat : 0}₺)</span></div>
-            <div class="analiz-satir"><span>🧸 Figür:</span> <span>${enPahaliF ? enPahaliF.isim : '-'} (${enPahaliF ? enPahaliF.fiyat : 0}₺)</span></div>
+            <div class="analiz-baslik">Güncel Değer Hesaplayıcı (Kitap)</div>
+            <div class="analiz-satir" style="background: rgba(16, 185, 129, 0.05); border: 1px dashed var(--accent);">
+                <span>📚 Kitap Taban Fiyat:</span>
+                <input type="number" id="guncelTabanFiyat" class="guncel-input" value="${kaydedilmisGuncel}" oninput="guncelDegerHesapla(this.value)">
+            </div>
+            <div class="analiz-satir" style="margin-top:5px; font-weight:bold; color:var(--accent)">
+                <span>📈 Güncel Koleksiyon Değeri:</span>
+                <span id="guncelSonucDisplay">0.00₺</span>
+            </div>
+
+            <div class="analiz-baslik">Harcanan Toplam</div>
+            <div class="analiz-satir"><span>Kitaplar:</span> <b>${kH.toFixed(2)}₺</b></div>
+            <div class="analiz-satir"><span>Figürler:</span> <b>${fH.toFixed(2)}₺</b></div>
+            <div class="analiz-satir" style="border:1px solid var(--edit)"><span>Toplam:</span> <b>${(kH+fH).toFixed(2)}₺</b></div>
             
-            <div class="analiz-baslik">En Ucuz Parçalar</div>
-            <div class="analiz-satir"><span>📚 Kitap:</span> <span>${enUcuzK ? enUcuzK.isim : '-'} (${enUcuzK ? enUcuzK.fiyat : 0}₺)</span></div>
-            <div class="analiz-satir"><span>🧸 Figür:</span> <span>${enUcuzF ? enUcuzF.isim : '-'} (${enUcuzF ? enUcuzF.fiyat : 0}₺)</span></div>
+            <div class="analiz-baslik">En Değerliler</div>
+            <div class="analiz-satir"><span>Pahalı Kitap:</span> <span>${enPahaliK ? enPahaliK.isim : '-'} (${enPahaliK ? enPahaliK.fiyat : 0}₺)</span></div>
+            <div class="analiz-satir"><span>Ucuz Kitap:</span> <span>${enUcuzK ? enUcuzK.isim : '-'} (${enUcuzK ? enUcuzK.fiyat : 0}₺)</span></div>
             
-            <button class="modal-btn" onclick="modalKapat()">Kapat</button>
+            <button class="modal-btn" style="margin-top:10px" onclick="modalKapat()">Kapat</button>
         `);
+        
+        // Modal açıldığında hesaplamayı bir kez çalıştır
+        guncelDegerHesapla(kaydedilmisGuncel);
+    }
+
+    function guncelDegerHesapla(tabanFiyat) {
+        const tf = parseFloat(tabanFiyat) || 0;
+        localStorage.setItem('guncel_taban_fiyat', tf);
+        
+        const kList = ogeler.filter(o => (o.tur || 'kitap') === 'kitap');
+        const fList = ogeler.filter(o => o.tur === 'figur');
+        
+        // Kitaplar için: Taban fiyattan düşükse taban fiyatı, yüksekse kendi fiyatını al
+        const guncelKitapToplam = kList.reduce((toplam, o) => {
+            const kitapDegeri = (o.fiyat < tf) ? tf : (o.fiyat || 0);
+            return toplam + kitapDegeri;
+        }, 0);
+
+        const figurToplam = fList.reduce((a, b) => a + (b.fiyat || 0), 0);
+        const genelGuncelToplam = guncelKitapToplam + figurToplam;
+
+        document.getElementById('guncelSonucDisplay').innerText = genelGuncelToplam.toFixed(2) + "₺";
     }
 
     function detayGoster(tip) {
         const liste = ogeler.filter(o => (o.tur || 'kitap') === tip);
         const tamam = liste.filter(o => o.okundu).length;
-        modalAc(`
-            <h2 style="margin:0; color:${tip==='kitap'?'var(--accent)':'var(--figur-accent)'}; text-align:center;">${tip === 'kitap' ? '📘 Kitap' : '✨ Figür'} Özeti</h2>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;">
-                    <small>Tamamlanan</small><br><b style="font-size:1.2rem; color:${tip==='kitap'?'var(--accent)':'var(--figur-accent)'}">${tamam}</b>
-                </div>
-                <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;">
-                    <small>Bekleyen</small><br><b style="font-size:1.2rem; color:var(--edit)">${liste.length - tamam}</b>
-                </div>
-            </div>
-            <button class="modal-btn ${tip==='figur'?'figur-btn':''}" onclick="modalKapat()">Kapat</button>
-        `);
+        modalAc(`<h2 style="margin:0; color:${tip==='kitap'?'var(--accent)':'var(--figur-accent)'}; text-align:center;">${tip === 'kitap' ? '📘 Kitap' : '✨ Figür'} Özeti</h2><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;"><div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;"><small>Tamamlanan</small><br><b style="font-size:1.2rem; color:${tip==='kitap'?'var(--accent)':'var(--figur-accent)'}">${tamam}</b></div><div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;"><small>Bekleyen</small><br><b style="font-size:1.2rem; color:var(--edit)">${liste.length - tamam}</b></div></div><button class="modal-btn ${tip==='figur'?'figur-btn':''}" onclick="modalKapat()">Kapat</button>`);
     }
 
     function modalDizginle(e) { if (e.target.id === "genelModal") modalKapat(); }
@@ -299,25 +299,11 @@
         document.getElementById('sayacFigur').innerText = ogeler.filter(o => o.tur === 'figur').length;
         document.getElementById('toplamPara').innerText = ogeler.reduce((a, b) => a + (b.fiyat || 0), 0).toFixed(2) + "₺";
     }
-    function seriDuzenlePanel() { 
-        const seri = ogeler.find(o => (o.seri+"_"+(o.tur||'kitap'))===seciliSeriKey).seri;
-        const yeni = prompt("Klasör Adı:", seri);
-        if(yeni) { ogeler = ogeler.map(o => (o.seri+"_"+(o.tur||'kitap'))===seciliSeriKey ? {...o, seri:yeni} : o); veriyiKaydet(); }
-    }
+    function menuAc(e, k) { e.preventDefault(); seciliSeriKey = k; const m = document.getElementById('contextMenu'); m.style.display = 'block'; let x = e.clientX, y = e.clientY; if (x + 180 > window.innerWidth) x -= 180; if (y + 100 > window.innerHeight) y -= 100; m.style.left = x + 'px'; m.style.top = y + 'px'; e.stopPropagation(); }
+    function seriDuzenlePanel() { const seri = ogeler.find(o => (o.seri+"_"+(o.tur||'kitap'))===seciliSeriKey).seri; const yeni = prompt("Klasör Adı:", seri); if(yeni) { ogeler = ogeler.map(o => (o.seri+"_"+(o.tur||'kitap'))===seciliSeriKey ? {...o, seri:yeni} : o); veriyiKaydet(); } }
     function seriSilOnay() { if(confirm("Klasörü sil?")) { ogeler = ogeler.filter(o => (o.seri+"_"+(o.tur||'kitap'))!==seciliSeriKey); veriyiKaydet(); } }
-    function duzenlePanelAc(id) {
-        const o = ogeler.find(x => x.id === id);
-        modalAc(`<h3>✏️ Düzenle</h3>
-        <input type="text" id="mAd" value="${o.isim}">
-        <input type="text" id="mSeri" value="${o.seri}" placeholder="Klasör Adı">
-        <input type="number" step="0.01" id="mFiyat" value="${o.fiyat}">
-        <textarea id="mNot">${o.not||''}</textarea>
-        <button class="modal-btn ${o.tur==='figur'?'figur-btn':''}" onclick="kaydetDuzenleme(${id})">Kaydet</button>`);
-    }
-    function kaydetDuzenleme(id) {
-        ogeler = ogeler.map(o => o.id === id ? {...o, isim:document.getElementById('mAd').value, seri:document.getElementById('mSeri').value, fiyat:parseFloat(document.getElementById('mFiyat').value)||0, not:document.getElementById('mNot').value} : o);
-        veriyiKaydet(); modalKapat();
-    }
+    function duzenlePanelAc(id) { const o = ogeler.find(x => x.id === id); modalAc(`<h3>✏️ Düzenle</h3><input type="text" id="mAd" value="${o.isim}"><input type="text" id="mSeri" value="${o.seri||''}" placeholder="Klasör Adı"><input type="number" step="0.01" id="mFiyat" value="${o.fiyat}"><textarea id="mNot">${o.not||''}</textarea><button class="modal-btn ${o.tur==='figur'?'figur-btn':''}" onclick="kaydetDuzenleme(${id})">Kaydet</button>`); }
+    function kaydetDuzenleme(id) { ogeler = ogeler.map(o => o.id === id ? {...o, isim:document.getElementById('mAd').value, seri:document.getElementById('mSeri').value, fiyat:parseFloat(document.getElementById('mFiyat').value)||0, not:document.getElementById('mNot').value} : o); veriyiKaydet(); modalKapat(); }
 </script>
 </body>
 </html>
