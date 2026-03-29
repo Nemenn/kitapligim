@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Koleksiyon Arşivi</title>
+    <title>Koleksiyon Arşivi Pro</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -11,99 +11,81 @@
     
     <style>
         :root {
-            --bg: #0f172a; --card: #1e293b; --text: #f1f5f9;
+            --bg: #0b0f1a; --card: #161d2f; --text: #f8fafc;
             --accent: #10b981; --figur-accent: #fbbf24;
-            --input: #334155; --border: rgba(255, 255, 255, 0.05);
+            --input: #1f2937; --border: rgba(255, 255, 255, 0.08);
+            --blue: #3b82f6; --red: #ef4444;
         }
 
         * { box-sizing: border-box; transition: all 0.2s ease; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; overflow-x: hidden; }
         .konteynir { width: 100%; max-width: 650px; }
 
-        /* BAŞLIK TASARIMI (GRADYAN VE İKON) */
-        h1 { 
-            text-align: center; 
-            margin: 20px 0; 
-            font-size: 1.6rem; 
-            font-weight: 900; 
-            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
+        .istatistik-bari { display: flex; gap: 12px; margin-bottom: 25px; }
+        .istatistik-kart { flex: 1; background: var(--card); padding: 15px 5px; border-radius: 20px; text-align: center; border: 1px solid var(--border); cursor: pointer; }
+        .istatistik-sayi { display: block; font-size: 1.2rem; font-weight: 800; }
+        .istatistik-detay { font-size: 0.6rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
 
-        .istatistik-bari { display: flex; gap: 10px; margin-bottom: 15px; }
-        .istatistik-kart { flex: 1; background: var(--card); padding: 18px 10px; border-radius: 18px; text-align: center; border: 1px solid var(--border); cursor: pointer; }
-        .istatistik-sayi { display: block; font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
-        .istatistik-etiket { font-size: 0.7rem; opacity: 0.5; font-weight: 700; text-transform: uppercase; }
+        .mod-secici { display: flex; gap: 10px; margin-bottom: 20px; }
+        .mod-btn { flex: 1; padding: 14px; border: none; border-radius: 14px; cursor: pointer; font-weight: 800; color: white; opacity: 0.4; background: var(--card); border: 1px solid var(--border); }
+        .mod-btn.aktif.kitap { opacity: 1; border-color: var(--accent); color: var(--accent); }
+        .mod-btn.aktif.figur { opacity: 1; border-color: var(--figur-accent); color: var(--figur-accent); }
 
-        .mod-secici { display: flex; background: var(--card); padding: 5px; border-radius: 14px; margin-bottom: 15px; border: 1px solid var(--border); }
-        .mod-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; color: white; background: transparent; font-size: 0.85rem; }
-        .mod-btn.aktif.kitap { background: var(--accent); color: #0f172a; }
-        .mod-btn.aktif.figur { background: var(--figur-accent); color: #0f172a; }
+        .giris-paneli { background: var(--card); padding: 20px; border-radius: 24px; margin-bottom: 25px; border: 1px solid var(--border); }
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        input { background: var(--input); border: 1px solid var(--border); padding: 12px; border-radius: 12px; color: white; width: 100%; outline: none; }
+        #anaButon { width: 100%; border: none; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 800; background: var(--accent); color: #0b0f1a; margin-top: 10px; }
 
-        .giris-paneli { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 25px; border: 1px solid var(--border); }
-        .satir { display: flex; gap: 8px; margin-bottom: 8px; }
-        input, textarea { background: var(--input); border: 1px solid var(--border); padding: 12px; border-radius: 10px; color: white; width: 100%; outline: none; font-size: 0.9rem; }
-        #anaButon { width: 100%; border: none; padding: 14px; border-radius: 10px; cursor: pointer; font-weight: 800; }
-
-        /* KLASÖR VE RENKLİ SAYAÇ */
-        .seri-grubu { background: rgba(255, 255, 255, 0.02); border-radius: 15px; margin-bottom: 10px; border: 1px solid var(--border); overflow: hidden; }
-        .seri-baslik { padding: 16px 20px; display: flex; align-items: center; cursor: pointer; }
-        .seri-etiket { font-weight: 700; font-size: 1rem; color: #cbd5e1; }
-        .seri-sag { margin-left: auto; display: flex; align-items: center; gap: 15px; }
+        .seri-grubu { background: rgba(255, 255, 255, 0.02); border-radius: 20px; margin-bottom: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .seri-baslik { padding: 18px 22px; display: flex; align-items: center; cursor: pointer; justify-content: space-between; user-select: none; }
+        .seri-sol { display: flex; align-items: center; gap: 10px; }
+        .seri-sag { display: flex; align-items: center; gap: 12px; }
+        .seri-sayac { font-size: 0.75rem; font-weight: 900; padding: 5px 12px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #3b82f6); color: white; }
         
-        .seri-sayac { 
-            font-size: 0.75rem; 
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%); 
-            color: #064e3b;
-            padding: 4px 10px; 
-            border-radius: 20px; 
-            font-weight: 800;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
-        }
-        .seri-ok { font-size: 0.8rem; opacity: 0.3; transition: 0.3s; }
-        .seri-grubu.acik .seri-ok { transform: rotate(180deg); opacity: 1; color: var(--accent); }
+        .seri-ok { font-size: 0.7rem; opacity: 0.5; transition: transform 0.25s ease; display: inline-block; }
+        .seri-grubu .seri-ok { transform: rotate(-90deg); }
+        .seri-grubu.acik .seri-ok { transform: rotate(0deg); opacity: 1; color: var(--accent); }
 
-        .seri-icerik { display: none; padding: 0 12px 12px 12px; }
-        .seri-grubu.acik .seri-icerik { display: block; }
+        .kitap-satir { background: var(--card); padding: 15px; border-radius: 18px; margin-bottom: 8px; border: 1px solid var(--border); cursor: context-menu; }
+        .satir-ust { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .kitap-adi { font-weight: 600; font-size: 0.95rem; flex: 1; display: flex; align-items: center; }
+        .kitap-not { font-size: 0.75rem; color: #94a3b8; margin-left: 32px; margin-top: 4px; display: block; font-style: italic; }
+        .satir-sag { display: flex; align-items: center; gap: 12px; }
+        
+        .btn-sil { background: rgba(239, 68, 68, 0.15); color: var(--red); border: none; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 1rem; }
+        .switch-konteynir { width: 44px; height: 24px; background: #334155; border-radius: 20px; position: relative; cursor: pointer; }
+        .switch-daire { width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 4px; left: 4px; }
+        .switch-konteynir.aktif { background: var(--accent); box-shadow: 0 0 12px rgba(16, 185, 129, 0.5); }
+        .switch-konteynir.aktif .switch-daire { left: 24px; }
 
-        .kitap-satir { background: var(--card); padding: 14px 16px; border-radius: 12px; margin-bottom: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .kitap-adi { font-weight: 600; font-size: 0.95rem; }
-        .okunmus { opacity: 0.4; filter: grayscale(1); }
+        .okunmus { opacity: 0.5; }
         .okunmus .kitap-adi { text-decoration: line-through; }
 
-        .switch-konteynir { width: 36px; height: 20px; background: #475569; border-radius: 20px; position: relative; cursor: pointer; }
-        .switch-daire { width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 3px; left: 3px; }
-        .switch-konteynir.aktif { background: var(--accent); }
-        .switch-konteynir.aktif .switch-daire { left: 19px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(12px); }
+        .modal-icerik { background: var(--card); padding: 30px; border-radius: 32px; width: 92%; max-width: 420px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
+        .ozet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .ozet-kutusu { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 18px; text-align: center; border: 1px solid var(--border); }
+        .ozet-sayi { display: block; font-size: 1.2rem; font-weight: 900; margin-bottom: 2px; }
 
-        /* FİNANSAL MODAL */
-        .finans-satir { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .ekstrem-kutu { margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border-left: 4px solid var(--accent); }
-
-        #contextMenu { display: none; position: fixed; background: #1e293b; border: 1px solid var(--border); border-radius: 12px; z-index: 3000; min-width: 150px; }
-        .ctx-item { padding: 12px 16px; font-size: 0.85rem; cursor: pointer; font-weight: 600; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-        .modal-icerik { background: var(--card); padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; border: 1px solid var(--border); }
-        
-        #listeAlani.gecis { opacity: 0; transform: translateY(5px); }
+        .handle { cursor: grab; opacity: 0.3; margin-right: 12px; font-size: 1.2rem; }
+        .seri-icerik { display: none; padding: 0 15px 15px 15px; }
+        .seri-grubu.acik .seri-icerik { display: block; }
     </style>
 </head>
-<body onclick="ctxKapat()" oncontextmenu="return false;">
+<body>
 
 <div class="konteynir">
     <div class="istatistik-bari">
-        <div class="istatistik-kart" onclick="okumaAnalizi()"><span class="istatistik-sayi" id="sK" style="color:var(--accent)">0</span><span class="istatistik-etiket">KİTAP</span></div>
-        <div class="istatistik-kart"><span class="istatistik-sayi" id="sF" style="color:var(--figur-accent)">0</span><span class="istatistik-etiket">FİGÜR</span></div>
-        <div class="istatistik-kart" onclick="analizAc()"><span class="istatistik-sayi" id="sP" style="color:#3b82f6">0₺</span><span class="istatistik-etiket">FİNANS</span></div>
+        <div class="istatistik-kart" onclick="kitapOzetiAc()">
+            <span class="istatistik-sayi" id="sK" style="color:var(--text)">0</span>
+            <span class="istatistik-detay">KİTAP ARŞİVİ ➔</span>
+        </div>
+        <div class="istatistik-kart"><span class="istatistik-sayi" id="sF" style="color:var(--figur-accent)">0</span><span class="istatistik-detay">FİGÜR</span></div>
+        <div class="istatistik-kart" style="border-color:var(--blue)" onclick="analizAc()">
+            <span class="istatistik-sayi" id="sP" style="color:var(--blue)">0₺</span>
+            <span class="istatistik-detay">TOPLAM FİNANS ➔</span>
+        </div>
     </div>
-
-    <h1>📖 KOLEKSİYON ARŞİVİ</h1>
 
     <div class="mod-secici">
         <button id="mK" class="mod-btn aktif kitap" onclick="setMod('kitap')">KİTAPLAR</button>
@@ -111,29 +93,53 @@
     </div>
 
     <div class="giris-paneli">
-        <div class="satir"><input type="text" id="iAd" placeholder="Eser Adı"><input type="text" id="iSeri" placeholder="Klasör Adı"></div>
-        <input type="number" id="iFiyat" placeholder="Alış Fiyatı ₺" style="margin-bottom:8px">
-        <textarea id="iNot" placeholder="Notlar..."></textarea>
-        <button onclick="ekle()" id="anaButon" style="background:var(--accent); color:#0f172a; margin-top:10px">LİSTEYE EKLE</button>
+        <div class="input-row"><input type="text" id="iAd" placeholder="Ad / Başlık"><input type="text" id="iSeri" placeholder="Seri/Klasör"></div>
+        <div class="input-row"><input type="number" id="iFiyat" placeholder="Taban Fiyat ₺"><input type="text" id="iNot" placeholder="Not ekle..."></div>
+        <button onclick="ekle()" id="anaButon">SİSTEME KAYDET</button>
     </div>
 
     <div id="listeAlani"></div>
 </div>
 
-<div id="contextMenu"><div class="ctx-item" id="ctxDuzenle">✏️ Düzenle</div><div class="ctx-item" id="ctxSil" style="color:#ef4444">🗑️ Sil</div></div>
+<div id="kitapModal" class="modal" onclick="this.style.display='none'">
+    <div class="modal-icerik" onclick="event.stopPropagation()">
+        <h2 style="text-align:center; margin-top:0;">📚 Kitap Durumu</h2>
+        <div class="ozet-grid">
+            <div class="ozet-kutusu"><span class="istatistik-detay">OKUNAN</span><span class="ozet-sayi" id="mOkunan" style="color:var(--accent)">0</span></div>
+            <div class="ozet-kutusu"><span class="istatistik-detay">OKUNACAK</span><span class="ozet-sayi" id="mKalan" style="color:var(--red)">0</span></div>
+        </div>
+        <button onclick="document.getElementById('kitapModal').style.display='none'" style="background:var(--input); color:white; border:none; padding:15px; border-radius:18px; width:100%; margin-top:20px; cursor:pointer; font-weight:800">KAPAT</button>
+    </div>
+</div>
 
 <div id="analizModal" class="modal" onclick="this.style.display='none'">
     <div class="modal-icerik" onclick="event.stopPropagation()">
-        <h3 id="modalBaslik" style="margin-top:0; text-align:center; font-weight:900"></h3>
-        <div id="modalDetay"></div>
-        <div id="tabanAlan" style="display:none; margin-top:15px; padding:15px; background:rgba(0,0,0,0.2); border-radius:15px">
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem">
-                <span>Taban Fiyat (Kitap):</span>
-                <input type="number" id="basePrice" value="0" oninput="guncelHesapla()" style="width:70px; padding:5px; margin:0">
-            </div>
-            <div style="text-align:right; font-size:1.1rem; font-weight:900; margin-top:10px; color:#3b82f6" id="aGuncelVal">0₺</div>
+        <h2 style="text-align:center; margin-top:0;">📊 Koleksiyon Analizi</h2>
+        <div class="ozet-grid">
+            <div class="ozet-kutusu" style="grid-column: span 2; background: rgba(16, 185, 129, 0.1);"><span class="istatistik-detay">GENEL KOLEKSİYON DEĞERİ</span><div id="toplamHarcanan" class="ozet-sayi" style="font-size:1.6rem; color:var(--accent)">0₺</div></div>
+            <div class="ozet-kutusu"><span class="istatistik-detay">KİTAP TOPLAMI</span><div id="kitapFiyatTop" class="ozet-sayi">0₺</div></div>
+            <div class="ozet-kutusu"><span class="istatistik-detay">FİGÜR TOPLAMI</span><div id="figurFiyatTop" class="ozet-sayi" style="color:var(--figur-accent)">0₺</div></div>
+            
+            <div class="ozet-kutusu" style="grid-column: span 2; text-align: left;"><span class="istatistik-detay">EN PAHALI KİTAP 📕</span><div id="enPahaliKitapFiyat" style="font-size:1.1rem; font-weight:900">0₺</div><div id="enPahaliKitapIsim" style="font-size:0.7rem; color:var(--blue)">-</div></div>
+            <div class="ozet-kutusu" style="grid-column: span 2; text-align: left;"><span class="istatistik-detay">EN UCUZ KİTAP 📖</span><div id="enUcuzKitapFiyat" style="font-size:1.1rem; font-weight:900">0₺</div><div id="enUcuzKitapIsim" style="font-size:0.7rem; color:var(--blue)">-</div></div>
+            
+            <div class="ozet-kutusu" style="grid-column: span 2; text-align: left; opacity: 0.7;"><span class="istatistik-detay">EN PAHALI ÖGE (GENEL)</span><div id="enPahaliFiyat" style="font-size:1rem; font-weight:900">0₺</div><div id="enPahaliIsim" style="font-size:0.7rem; color:var(--text)">-</div></div>
         </div>
-        <button onclick="document.getElementById('analizModal').style.display='none'" style="background:var(--input); color:white; border:none; padding:15px; border-radius:12px; width:100%; margin-top:20px; cursor:pointer; font-weight:700">KAPAT</button>
+        <button onclick="document.getElementById('analizModal').style.display='none'" style="background:var(--input); color:white; border:none; padding:15px; border-radius:18px; width:100%; margin-top:20px; cursor:pointer; font-weight:800">KAPAT</button>
+    </div>
+</div>
+
+<div id="editModal" class="modal" onclick="this.style.display='none'">
+    <div class="modal-icerik" onclick="event.stopPropagation()">
+        <h2 style="text-align:center; margin-top:0;">📝 Kaydı Düzenle</h2>
+        <input type="text" id="eAd" placeholder="Ad" style="margin-bottom:10px">
+        <input type="text" id="eSeri" placeholder="Seri" style="margin-bottom:10px">
+        <input type="number" id="eFiyat" placeholder="Fiyat" style="margin-bottom:10px">
+        <input type="text" id="eNot" placeholder="Not" style="margin-bottom:15px">
+        <div style="display:flex; gap:10px">
+            <button onclick="duzenleKaydet()" id="anaButon" style="margin:0">GÜNCELLE</button>
+            <button onclick="document.getElementById('editModal').style.display='none'" style="background:var(--input); color:white; border:none; padding:10px; border-radius:12px; flex:1; cursor:pointer">İPTAL</button>
+        </div>
     </div>
 </div>
 
@@ -148,152 +154,176 @@
     const db = firebase.database();
     let ogeler = [];
     let mod = "kitap";
+    let editId = null;
 
     db.ref('arsiv_data').on('value', s => { ogeler = s.val() || []; render(); });
 
-    function setMod(m) {
-        const alan = document.getElementById('listeAlani');
-        alan.classList.add('gecis'); 
-        setTimeout(() => {
-            mod = m;
-            document.getElementById('mK').classList.toggle('aktif', m==='kitap');
-            document.getElementById('mF').classList.toggle('aktif', m==='figur');
-            document.getElementById('anaButon').style.background = m==='figur' ? 'var(--figur-accent)' : 'var(--accent)';
-            render();
-            alan.classList.remove('gecis');
-        }, 150);
+    function setMod(m) { mod = m; render(); }
+
+    function formatIsim(o) {
+        if(!o.seri) return o.isim;
+        let s = o.seri.toLowerCase().trim();
+        let i = o.isim.toLowerCase().trim();
+        return i.includes(s) ? o.isim : o.seri + " - " + o.isim;
     }
 
     function ekle() {
         const ad = document.getElementById('iAd').value.trim();
         const seri = document.getElementById('iSeri').value.trim();
+        const not = document.getElementById('iNot').value.trim();
         const fiyat = parseFloat(document.getElementById('iFiyat').value) || 0;
-        const not = document.getElementById('iNot').value;
         if (!ad) return;
         ogeler.push({ id: Date.now(), isim: ad, seri, fiyat, not, tur: mod, okundu: false });
-        db.ref('arsiv_data').set(ogeler).then(() => {
-            document.getElementById('iAd').value = ""; document.getElementById('iFiyat').value = ""; document.getElementById('iNot').value = "";
-        });
+        saveToFirebase();
+        document.getElementById('iAd').value = ""; document.getElementById('iSeri').value = ""; 
+        document.getElementById('iFiyat').value = ""; document.getElementById('iNot').value = "";
     }
 
     function render() {
         const alan = document.getElementById('listeAlani');
         const aciklar = Array.from(document.querySelectorAll('.seri-grubu.acik')).map(el => el.dataset.seri);
         alan.innerHTML = "";
-        const gruplar = {}; const tekiller = [];
         
+        const gruplar = {}; const tekiller = [];
         ogeler.forEach(o => {
             if ((o.tur || 'kitap') !== mod) return;
-            if (o.seri) { if (!gruplar[o.seri]) gruplar[o.seri] = []; gruplar[o.seri].push(o); } 
-            else tekiller.push(o);
+            o.seri ? (gruplar[o.seri] = gruplar[o.seri] || [], gruplar[o.seri].push(o)) : tekiller.push(o);
         });
 
-        for (let s in gruplar) {
+        Object.keys(gruplar).forEach(s => {
             const okunan = gruplar[s].filter(x => x.okundu).length;
             const div = document.createElement('div');
             div.className = `seri-grubu ${aciklar.includes(s) ? 'acik' : ''}`;
             div.dataset.seri = s;
-            div.oncontextmenu = (e) => ctxAc(e, 'seri', s);
-            div.innerHTML = `<div class="seri-baslik" onclick="this.parentElement.classList.toggle('acik')">
-                                <span class="seri-etiket">📁 ${s}</span>
-                                <div class="seri-sag">
-                                    <span class="seri-sayac">${okunan} / ${gruplar[s].length}</span>
-                                    <span class="seri-ok">▼</span>
-                                </div>
-                             </div>
-                             <div class="seri-icerik">${gruplar[s].map(o => ogeHtml(o)).join('')}</div>`;
+            div.innerHTML = `
+                <div class="seri-baslik" onclick="this.parentElement.classList.toggle('acik')">
+                    <div class="seri-sol"><span class="handle">⠿</span><b>📁 ${s}</b></div>
+                    <div class="seri-sag">
+                        <span class="seri-sayac">${okunan}/${gruplar[s].length}</span>
+                        <span class="seri-ok">▼</span>
+                    </div>
+                </div>
+                <div class="seri-icerik">${gruplar[s].map(o => ogeHtml(o)).join('')}</div>`;
             alan.appendChild(div);
-        }
-        tekiller.forEach(o => { const d = document.createElement('div'); d.innerHTML = ogeHtml(o); alan.appendChild(d.firstElementChild); });
-        surukle(); stats();
+        });
+
+        tekiller.forEach(o => {
+            const d = document.createElement('div'); d.innerHTML = ogeHtml(o);
+            alan.appendChild(d.firstElementChild);
+        });
+
+        initSortable(); renderStats();
     }
 
     function ogeHtml(o) {
-        return `<div class="kitap-satir ${o.okundu ? 'okunmus' : ''}" data-id="${o.id}" oncontextmenu="ctxAc(event, 'oge', ${o.id})">
-                    <div class="kitap-adi">${o.isim} <span style="font-weight:400; opacity:0.4; font-size:0.75rem; margin-left:8px">${o.fiyat}₺</span></div>
+        return `<div class="kitap-satir ${o.okundu ? 'okunmus' : ''}" data-id="${o.id}" oncontextmenu="sagTikla(event, ${o.id})">
+            <div class="satir-ust">
+                <div class="kitap-adi"><span class="handle">⠿</span><span>${formatIsim(o)}</span></div>
+                <div class="satir-sag">
+                    <span style="font-size:0.75rem; color:#94a3b8; font-weight:700">${o.fiyat}₺</span>
                     <div class="switch-konteynir ${o.okundu ? 'aktif' : ''}" onclick="tıkStatus(${o.id})"><div class="switch-daire"></div></div>
-                </div>`;
+                    <button class="btn-sil" onclick="ogeSil(${o.id})">🗑️</button>
+                </div>
+            </div>
+            ${o.not ? `<span class="kitap-not">📝 ${o.not}</span>` : ''}
+        </div>`;
     }
 
-    function ctxAc(e, tip, id) {
-        e.preventDefault(); e.stopPropagation();
-        const ctx = document.getElementById('contextMenu');
-        ctx.style.display = 'block'; ctx.style.left = e.pageX + 'px'; ctx.style.top = e.pageY + 'px';
-        document.getElementById('ctxDuzenle').onclick = () => tip === 'seri' ? seriDuzenle(id) : ogeDuzenle(id);
-        document.getElementById('ctxSil').onclick = () => tip === 'seri' ? seriSil(id) : sil(id);
-    }
-    function ctxKapat() { document.getElementById('contextMenu').style.display = 'none'; }
-
-    function ogeDuzenle(id) {
-        const o = ogeler.find(x => x.id === id);
-        const yeniAd = prompt("Yeni Ad:", o.isim);
-        const yeniFiyat = prompt("Yeni Fiyat:", o.fiyat);
-        if(yeniAd !== null) {
-            ogeler = ogeler.map(x => x.id === id ? {...x, isim: yeniAd, fiyat: parseFloat(yeniFiyat) || 0} : x);
-            db.ref('arsiv_data').set(ogeler);
-        }
+    function renderStats() {
+        const kList = ogeler.filter(o=>(o.tur||'kitap')==='kitap');
+        const fList = ogeler.filter(o=>o.tur==='figur');
+        document.getElementById('sK').innerText = kList.length;
+        document.getElementById('sF').innerText = fList.length;
+        const toplam = ogeler.reduce((a,b)=>a+(b.fiyat||0),0);
+        document.getElementById('sP').innerText = toplam.toFixed(0) + "₺";
+        document.getElementById('mK').classList.toggle('aktif', mod === 'kitap');
+        document.getElementById('mF').classList.toggle('aktif', mod === 'figur');
     }
 
-    function seriDuzenle(eski) {
-        const yeni = prompt("Klasör Adı:", eski);
-        if(yeni && yeni !== eski) {
-            ogeler = ogeler.map(o => o.seri === eski ? {...o, seri: yeni} : o);
-            db.ref('arsiv_data').set(ogeler);
-        }
-    }
-
-    function seriSil(s) { if(confirm("Klasörü ve içindekileri sil?")) { ogeler = ogeler.filter(o => o.seri !== s); db.ref('arsiv_data').set(ogeler); } }
-
-    function okumaAnalizi() {
-        const k = ogeler.filter(o => (o.tur||'kitap')==='kitap');
-        const ok = k.filter(o => o.okundu).length;
-        document.getElementById('modalBaslik').innerText = "OKUMA DURUMU";
-        document.getElementById('modalDetay').innerHTML = `
-            <div class="finans-satir"><span>Biten Kitaplar:</span> <b>${ok} Adet</b></div>
-            <div class="finans-satir"><span>Sıradaki Kitaplar:</span> <b>${k.length - ok} Adet</b></div>
-            <div class="finans-satir" style="border:none"><span>Tamamlanma:</span> <b style="color:var(--accent)">%${((ok/k.length)*100 || 0).toFixed(1)}</b></div>
-        `;
-        document.getElementById('tabanAlan').style.display = 'none';
-        document.getElementById('analizModal').style.display = 'flex';
+    function kitapOzetiAc() {
+        const kList = ogeler.filter(o=>(o.tur||'kitap')==='kitap');
+        const okunan = kList.filter(o => o.okundu).length;
+        document.getElementById('mOkunan').innerText = okunan;
+        document.getElementById('mKalan').innerText = kList.length - okunan;
+        document.getElementById('kitapModal').style.display = 'flex';
     }
 
     function analizAc() {
-        const kitaplar = ogeler.filter(o => (o.tur||'kitap')==='kitap');
-        const kT = kitaplar.reduce((a,b)=>a+(b.fiyat||0),0);
-        const fT = ogeler.filter(o => o.tur==='figur').reduce((a,b)=>a+(b.fiyat||0),0);
-        const sirali = [...kitaplar].sort((a,b) => b.fiyat - a.fiyat);
-        const enPahali = sirali.length > 0 ? sirali[0] : {isim: "-", fiyat: 0};
-        const enUcuz = sirali.length > 0 ? sirali[sirali.length-1] : {isim: "-", fiyat: 0};
+        const kitaplar = ogeler.filter(o=>(o.tur||'kitap')==='kitap' && (o.fiyat || 0) > 0);
+        const figurler = ogeler.filter(o=>o.tur==='figur' && (o.fiyat || 0) > 0);
+        const kTop = kitaplar.reduce((a,b)=>a+(b.fiyat||0),0);
+        const fTop = figurler.reduce((a,b)=>a+(b.fiyat||0),0);
+        
+        document.getElementById('kitapFiyatTop').innerText = kTop.toFixed(0) + "₺";
+        document.getElementById('figurFiyatTop').innerText = fTop.toFixed(0) + "₺";
+        document.getElementById('toplamHarcanan').innerText = (kTop + fTop).toFixed(0) + "₺";
 
-        document.getElementById('modalBaslik').innerText = "FİNANSAL ANALİZ";
-        document.getElementById('modalDetay').innerHTML = `
-            <div class="finans-satir"><span>Kitaplar:</span> <b>${kT.toFixed(1)}₺</b></div>
-            <div class="finans-satir"><span>Figürler:</span> <b>${fT.toFixed(1)}₺</b></div>
-            <div class="ekstrem-kutu">
-                <div style="margin-bottom:8px">🔥 <b>En Değerli:</b> <small>${enPahali.isim}</small> (${enPahali.fiyat}₺)</div>
-                <div>❄️ <b>En Uygun:</b> <small>${enUcuz.isim}</small> (${enUcuz.fiyat}₺)</div>
-            </div>
-        `;
-        document.getElementById('tabanAlan').style.display = 'block';
+        // Detaylı Kitap Analizi
+        if (kitaplar.length > 0) {
+            const enPK = kitaplar.reduce((p, c) => (p.fiyat > c.fiyat) ? p : c);
+            const enUK = kitaplar.reduce((p, c) => (p.fiyat < c.fiyat) ? p : c);
+            document.getElementById('enPahaliKitapFiyat').innerText = enPK.fiyat + "₺";
+            document.getElementById('enPahaliKitapIsim').innerText = formatIsim(enPK);
+            document.getElementById('enUcuzKitapFiyat').innerText = enUK.fiyat + "₺";
+            document.getElementById('enUcuzKitapIsim').innerText = formatIsim(enUK);
+        }
+
+        // Genel En Pahalı
+        const aktif = ogeler.filter(o => (o.fiyat || 0) > 0);
+        if (aktif.length > 0) {
+            const enP = aktif.reduce((p, c) => (p.fiyat > c.fiyat) ? p : c);
+            document.getElementById('enPahaliFiyat').innerText = enP.fiyat + "₺";
+            document.getElementById('enPahaliIsim').innerText = formatIsim(enP) + " (" + (enP.tur || 'kitap') + ")";
+        }
         document.getElementById('analizModal').style.display = 'flex';
-        guncelHesapla();
     }
 
-    function guncelHesapla() {
-        const base = parseFloat(document.getElementById('basePrice').value) || 0;
-        const guncel = ogeler.reduce((acc, o) => acc + (o.tur === 'figur' ? (o.fiyat || 0) : Math.max(o.fiyat || 0, base)), 0);
-        document.getElementById('aGuncelVal').innerText = "Koleksiyon Değeri: " + guncel.toLocaleString('tr-TR') + " ₺";
+    function sagTikla(e, id) {
+        e.preventDefault();
+        editId = id;
+        const o = ogeler.find(x => x.id === id);
+        document.getElementById('eAd').value = o.isim;
+        document.getElementById('eSeri').value = o.seri || "";
+        document.getElementById('eFiyat').value = o.fiyat || 0;
+        document.getElementById('eNot').value = o.not || "";
+        document.getElementById('editModal').style.display = 'flex';
     }
 
-    function surukle() { new Sortable(document.getElementById('listeAlani'), { animation: 200, handle: '.seri-baslik' }); }
-    function stats() {
-        const kC = ogeler.filter(o => (o.tur||'kitap')==='kitap').length; 
-        const fC = ogeler.filter(o => o.tur==='figur').length;
-        const total = ogeler.reduce((a, b) => a + (b.fiyat || 0), 0);
-        document.getElementById('sK').innerText = kC; document.getElementById('sF').innerText = fC; document.getElementById('sP').innerText = total.toFixed(0) + "₺";
+    function duzenleKaydet() {
+        ogeler = ogeler.map(o => o.id === editId ? {
+            ...o,
+            isim: document.getElementById('eAd').value,
+            seri: document.getElementById('eSeri').value,
+            fiyat: parseFloat(document.getElementById('eFiyat').value) || 0,
+            not: document.getElementById('eNot').value
+        } : o);
+        saveToFirebase();
+        document.getElementById('editModal').style.display = 'none';
     }
-    function tıkStatus(id) { ogeler = ogeler.map(o => o.id === id ? {...o, okundu: !o.okundu} : o); db.ref('arsiv_data').set(ogeler); }
-    function sil(id) { if(confirm("Silinsin mi?")) { ogeler = ogeler.filter(o => o.id !== id); db.ref('arsiv_data').set(ogeler); } }
+
+    function ogeSil(id) { if(confirm("Siliyorum?")) { ogeler = ogeler.filter(o => o.id !== id); saveToFirebase(); } }
+    function tıkStatus(id) { ogeler=ogeler.map(o=>o.id===id ? {...o, okundu:!o.okundu} : o); saveToFirebase(); }
+    function saveToFirebase() { db.ref('arsiv_data').set(ogeler); }
+    function initSortable() {
+        new Sortable(document.getElementById('listeAlani'), { animation: 200, handle: '.handle', onEnd: saveOrder });
+        document.querySelectorAll('.seri-icerik').forEach(el => new Sortable(el, { animation: 200, handle: '.handle', onEnd: saveOrder }));
+    }
+    function saveOrder() {
+        const yDizi = [];
+        Array.from(document.getElementById('listeAlani').children).forEach(el => {
+            if (el.classList.contains('seri-grubu')) {
+                Array.from(el.querySelector('.seri-icerik').children).forEach(c => {
+                    const o = ogeler.find(x => x.id === parseInt(c.dataset.id));
+                    if (o) yDizi.push(o);
+                });
+            } else {
+                const o = ogeler.find(x => x.id === parseInt(el.dataset.id));
+                if (o) yDizi.push(o);
+            }
+        });
+        const dgr = ogeler.filter(o => (o.tur || 'kitap') !== mod);
+        ogeler = [...yDizi, ...dgr]; saveToFirebase();
+    }
 </script>
 </body>
 </html>
